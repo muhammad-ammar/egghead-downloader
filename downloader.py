@@ -108,15 +108,15 @@ class DownloadWorker(Thread):
 
     def run(self):
        while True:
-           directory, url = self.queue.get()
-           download_video(directory, url)
+           directory, url, index = self.queue.get()
+           download_video(directory, url, index)
            self.queue.task_done()
 
 
-def download_video(directory, url):
+def download_video(directory, url, index):
     logger.info('Downloading [%s] into [%s]', url, directory)
     completed_process = subprocess.run(
-        ['youtube-dl', '--no-part', '-o', Path(directory, '%(title)s.%(ext)s'), url],
+        ['youtube-dl', '--no-part', '-o', Path(directory, '{}-%(title)s.%(ext)s'.format(index)), url],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE
     )
@@ -142,9 +142,9 @@ def download_videos_multi_threads(course_info, download_dir):
 
     lesson_urls = extract_lesson_urls(course_info)
 
-    for lesson_url in lesson_urls:
+    for index, lesson_url in enumerate(lesson_urls):
        logger.info('Queueing {}'.format(lesson_url))
-       queue.put((download_dir, lesson_url))
+       queue.put((download_dir, lesson_url, index))
 
     # let main thread to wait for the queue to finish processing all the tasks
     queue.join()
